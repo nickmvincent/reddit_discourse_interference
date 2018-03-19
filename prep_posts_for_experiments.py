@@ -17,6 +17,7 @@ subreddits_of_interest = [
     'worldnews',
     'news',
     'conspiracy',
+    'politics',
 ]
 
 
@@ -60,11 +61,11 @@ non_infop_posts = non_infop_posts.assign(from_influence_operation=0)
 posts_noninfop_sampled = pd.concat(
     [
         infop_posts,
-        non_infop_posts.sample(10000),
+        non_infop_posts.sample(50000),
     ]
 
 )
-posts_noninfop_sampled.to_csv('labeled_data/labeled_posts_10k_neg.csv')
+posts_noninfop_sampled.to_csv('labeled_data/labeled_posts_50k_neg.csv')
 
 # dev_posts = pd.concat(
 #     [

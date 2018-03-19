@@ -29,26 +29,23 @@ def print_topk(k, feature_names, clf):
 def main():
     data = pd.read_csv('labeled_data/labeled_posts_10k_neg.csv', encoding='latin-1')
 
-    print(data.describe())
-
-    print(data[data.from_influence_operation == 1].score.mean())
-    print(data[data.from_influence_operation == 0].score.mean())
+    data = data.fillna({
+        'subreddit': ''
+    })
     mapper = DataFrameMapper([
-        # ('subreddit', sklearn.preprocessing.LabelBinarizer()),
+        ('subreddit', sklearn.preprocessing.LabelBinarizer()),
         # ('title', CountVectorizer(stop_words=True, lowercase=True, max_features=50)),
         ('title', TfidfVectorizer(stop_words='english', lowercase=True)),
     ])
 
-
     X = mapper.fit_transform(data.copy())
     print(X)
-    print()
 
-    # clf = SGDClassifier(max_iter=10, tol=None, verbose=0)
+    clf = SGDClassifier(max_iter=10, tol=None, verbose=0)
     # clf = svm.LinearSVC(verbose=0)
-    clf = LogisticRegression(verbose=0)
-    clf.fit(X, data.from_influence_operation)
-    print_topk(20, mapper.transformed_names_, clf)
+    # clf = LogisticRegression(verbose=0)
+    # clf.fit(X, data.from_influence_operation)
+    # print_topk(20, mapper.transformed_names_, clf)
 
     # clf = NearestCentroid()
     for cv in [
