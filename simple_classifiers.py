@@ -7,6 +7,8 @@ import glob
 from sklearn_pandas import DataFrameMapper, cross_val_score
 import sklearn
 import numpy as np
+from collections import defaultdict
+from pprint import pprint
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -27,7 +29,11 @@ def print_topk(k, feature_names, clf):
     )
 
 def main():
-    data = pd.read_csv('labeled_data/labeled_posts_10k_neg.csv', encoding='latin-1')
+    filename = 'labeled_posts_50k_neg.csv'
+    path = 'labeled_data/' + filename
+    data = pd.read_csv(path, encoding='latin-1')
+
+    # all_labeled = pd.read_csv('labeled_data/labeled_posts.csv', encoding='latin-1')
 
     data = data.fillna({
         'subreddit': ''
@@ -39,32 +45,34 @@ def main():
     ])
 
     X = mapper.fit_transform(data.copy())
-    print(X)
 
-    clf = SGDClassifier(max_iter=10, tol=None, verbose=0)
-    # clf = svm.LinearSVC(verbose=0)
-    # clf = LogisticRegression(verbose=0)
-    # clf.fit(X, data.from_influence_operation)
-    # print_topk(20, mapper.transformed_names_, clf)
 
-    # clf = NearestCentroid()
-    for cv in [
-        StratifiedKFold(5, True, 0),
-        KFold(5, True, 0)
+    algo_to_score = defaultdict(dict)
+    for clf, name in [
+        (svm.LinearSVC(verbose=0), 'svm',),
+        (SGDClassifier(max_iter=10, tol=None, verbose=0), 'sgd',),
+        (LogisticRegression(verbose=0), 'logistic'),
+        # (NearestCentroid(), 'nearest centroid'), # pretty bad recall. Kick this one out.
     ]:
-        scores = cross_validate(clf, X, y=data.from_influence_operation, cv=cv, scoring=['precision', 'recall', 'f1', 'average_precision', 'roc_auc'])
-        for key, val in scores.items():
-            if 'test_' in key:
-                print('{}:{}'.format(key, val))
-
-    # pipe = sklearn.pipeline.Pipeline([
-    #     ('featurize', mapper),
-    #     ('clf', SGDClassifier(max_iter=10, tol=None, verbose=0)),
-    # ])
-
-    # scores = cross_val_score(pipe, X=data.copy(), y=data.from_influence_operation, scoring=None, cv=10)
-    # print(scores)
-
+        if name == 'logistic':
+            clf.fit(X, data.from_influence_operation)
+            print_topk(20, mapper.transformed_names_, clf)
+        for folds in [
+            StratifiedKFold(5, True, 0),
+            # KFold(5, True, 0)
+        ]:
+            scores = cross_validate(
+                clf, X, y=data.from_influence_operation, cv=folds,
+                scoring=['f1', 'precision', 'recall'])
+            ret = {}
+            for key, val in scores.items():
+                if 'test_' in key:
+                    ret[key] = np.mean(val)
+            algo_to_score[name]['cross_validation'] = ret
+            # clf.fit(X, data.from_influence_operation)
+            # y = clf.predict(all_labeled)
+            # report = classification_report(expected, y)
+    pprint(algo_to_score)
 
 if __name__ == '__main__':
     main()
