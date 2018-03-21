@@ -1,5 +1,6 @@
 raw_data/
 labeled_data/
+responses/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

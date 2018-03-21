@@ -21,10 +21,10 @@ from sklearn.neighbors.nearest_centroid import NearestCentroid
 
 def print_topk(k, feature_names, clf):
     """Prints features with the highest coefficient values, per class"""
-    top10 = np.argsort(clf.coef_[0])[-k:]
+    topk = np.argsort(clf.coef_[0])[-k:]
     print(
         "{}".format(
-            " ".join(feature_names[j] for j in top10)
+            " ".join(feature_names[j] for j in topk[::-1])
         )
     )
 
@@ -40,8 +40,12 @@ def main():
     })
     mapper = DataFrameMapper([
         ('subreddit', sklearn.preprocessing.LabelBinarizer()),
-        # ('title', CountVectorizer(stop_words=True, lowercase=True, max_features=50)),
-        ('title', TfidfVectorizer(stop_words='english', lowercase=True)),
+        # ('title', CountVectorizer(stop_words='english', lowercase=True, max_features=50)),
+        ('title', TfidfVectorizer(
+            stop_words='english', lowercase=True,
+            max_features=10000
+            )
+        ),
     ])
 
     X = mapper.fit_transform(data.copy())
@@ -57,18 +61,18 @@ def main():
         if name == 'logistic':
             clf.fit(X, data.from_influence_operation)
             print_topk(20, mapper.transformed_names_, clf)
-        for folds in [
-            StratifiedKFold(5, True, 0),
-            # KFold(5, True, 0)
-        ]:
+        for i, folds in enumerate([
+            # StratifiedKFold(5, True, 0),
+            KFold(5, True, 0)
+        ]):
             scores = cross_validate(
                 clf, X, y=data.from_influence_operation, cv=folds,
-                scoring=['f1', 'precision', 'recall'])
+                scoring=['f1', 'precision', 'recall',])
             ret = {}
             for key, val in scores.items():
                 if 'test_' in key:
                     ret[key] = np.mean(val)
-            algo_to_score[name]['cross_validation'] = ret
+            algo_to_score[name + str(i)]['cross_validation'] = ret
             # clf.fit(X, data.from_influence_operation)
             # y = clf.predict(all_labeled)
             # report = classification_report(expected, y)
